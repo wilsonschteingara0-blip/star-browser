@@ -5,6 +5,7 @@ export interface Shortcut {
 
 export const SHORTCUTS: Shortcut[] = [
   { label: 'New tab', keys: ['t'] },
+  { label: 'Focus the address bar', keys: ['⌘', 'L'] },
   { label: 'Search the constellation', keys: ['/'] },
   { label: 'Command palette', keys: ['⌘', 'K'] },
   { label: 'History', keys: ['h'] },

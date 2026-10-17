@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   ArrowUpRight,
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { ENGINE_URLS, SEARCH_ENGINES, SITES, STAR_QUOTES } from '../lib/sites'
-import { externalPortalUrl } from '../lib/url'
+import { externalPortalUrl, parseAddress } from '../lib/url'
 import { formatClock, formatDateLine, greeting, memoryLabel, timeAgo } from '../lib/utils'
 import { moonInfo } from '../lib/sky'
 import { faviconInfo } from '../lib/sites'
@@ -22,6 +22,7 @@ export function NewTab() {
   const { state, navigate, updateSettings, hibernateWithUndo } = useBrowser()
   const [now, setNow] = useState(() => new Date())
   const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
   const engine = state.settings.searchEngine
   const mem = useMemoryStats()
 
@@ -47,7 +48,11 @@ export function NewTab() {
   const submit = () => {
     const q = query.trim()
     if (!q) return
-    if (engine === 'star') {
+    // Like a real address bar: an address opens, a question searches.
+    const parsed = parseAddress(q)
+    if (parsed.mode !== 'search') {
+      navigate(parsed.url)
+    } else if (engine === 'star') {
       navigate(`star://search?q=${encodeURIComponent(q)}`)
     } else {
       navigate(externalPortalUrl(ENGINE_URLS[engine](q)))
@@ -88,6 +93,7 @@ export function NewTab() {
               <StarMark size={20} gradient />
             </span>
             <input
+              ref={searchRef}
               className="starsearch__input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -95,7 +101,6 @@ export function NewTab() {
                 if (e.key === 'Enter') submit()
                 if (e.key === 'Escape') setQuery('')
               }}
-              autoFocus={typeof window !== 'undefined' && window.innerWidth > 760}
               placeholder={
                 engine === 'star'
                   ? 'Search the constellation, notes, history…'

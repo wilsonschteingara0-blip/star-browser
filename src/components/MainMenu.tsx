@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Bookmark,
   CircleHelp,
@@ -29,6 +29,11 @@ export function MainMenu({ onOpenPalette }: { onOpenPalette: () => void }) {
   const { state, navigate, newTab, hibernateWithUndo, toggleZen, setTheme, updateSettings, toast } = useBrowser()
   const [open, setOpen] = useState(false)
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false), open)
+
+  // Navigating from anywhere (keyboard, tab switch) closes the menu.
+  useEffect(() => {
+    setOpen(false)
+  }, [state.activeId])
 
   const go = (url: string) => {
     navigate(url)

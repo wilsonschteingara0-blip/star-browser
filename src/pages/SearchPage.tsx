@@ -4,7 +4,7 @@ import { useBrowser } from '../store/browser'
 import { searchQueryOf } from '../lib/sites'
 import { searchConstellation } from '../lib/search'
 import { ENGINE_URLS } from '../lib/sites'
-import { externalPortalUrl } from '../lib/url'
+import { externalPortalUrl, parseAddress } from '../lib/url'
 
 const EXAMPLES = ['notes', 'ambient radio', 'moon', 'comet game', 'shortcuts']
 
@@ -22,7 +22,13 @@ export function SearchPage() {
 
   const run = (q: string) => {
     const clean = q.trim()
-    if (clean) navigate(`star://search?q=${encodeURIComponent(clean)}`)
+    if (!clean) return
+    const parsed = parseAddress(clean)
+    if (parsed.mode !== 'search') {
+      navigate(parsed.url)
+      return
+    }
+    navigate(`star://search?q=${encodeURIComponent(clean)}`)
   }
 
   return (

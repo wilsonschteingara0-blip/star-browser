@@ -8,7 +8,6 @@ import {
   MoonStar,
   Radio,
   Settings,
-  Star,
   Feather,
   History,
   Bookmark,
@@ -301,5 +300,3 @@ export const STAR_SEED_HISTORY: Array<{ url: string; title: string; minutesAgo: 
 ]
 
 export const STAR_SEED_BOOKMARKS: string[] = ['nebula.star', 'comet.star', 'docs.star', 'sky.star']
-
-export const STAR_BOOKMARK_ICON = Star

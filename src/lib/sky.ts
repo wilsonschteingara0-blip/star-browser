@@ -272,12 +272,18 @@ export function sunTimes(date = new Date(), lat = 41.9, lon = 12.5): { sunrise: 
     const localMeanTime = hHours + ra - 0.06571 * t - 6.622
     let ut = localMeanTime - lngHour
     ut = ((ut % 24) + 24) % 24
-    const utc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) + ut * 3_600_000
-    return new Date(utc)
+    // `ut` is an absolute UTC hour, so this timestamp formats correctly in
+    // whatever timezone the device is set to.
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) + ut * 3_600_000)
   }
 
-  const sunrise = calc(true) ?? new Date(start + 6.5 * 3_600_000)
-  const sunset = calc(false) ?? new Date(start + 18 * 3_600_000)
+  const fallback = (hours: number) => {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    d.setHours(hours, 0, 0, 0)
+    return d
+  }
+  const sunrise = calc(true) ?? fallback(6)
+  const sunset = calc(false) ?? fallback(18)
   return {
     sunrise,
     sunset,

@@ -92,6 +92,14 @@ export default function App() {
 
   const closePalette = useCallback(() => setPaletteOpen(false), [])
 
+  // A freshly opened tab puts the cursor in the address bar, like a real
+  // browser. The page's own search field is there for anyone who clicks it.
+  useEffect(() => {
+    if (activeTab.url.startsWith('star://newtab') && Date.now() - activeTab.createdAt < 1500) {
+      focusOmnibox()
+    }
+  }, [activeTab.id, activeTab.url, activeTab.createdAt])
+
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: 0, behavior: 'auto' })
     const hash = activeTab.url.split('#')[1]
@@ -114,6 +122,11 @@ export default function App() {
         setPaletteOpen((open) => !open)
         return
       }
+      if (mod && e.key.toLowerCase() === 'l') {
+        e.preventDefault()
+        focusOmnibox()
+        return
+      }
       if (e.key === 'Escape') {
         if (paletteOpen) {
           setPaletteOpen(false)
@@ -123,8 +136,10 @@ export default function App() {
         return
       }
       if (paletteOpen || typing) return
-      if (mod || e.altKey) return
+      if (mod || e.altKey || e.repeat) return
 
+      // Prevent the default action for every key we handle, otherwise the
+      // character can be inserted into an input that has just been focused.
       switch (e.key) {
         case '/':
           e.preventDefault()
@@ -137,32 +152,40 @@ export default function App() {
           break
         case 'm':
         case 'M':
+          e.preventDefault()
           hibernateWithUndo()
           break
         case 'z':
         case 'Z':
+          e.preventDefault()
           toggleZen()
           break
         case 'b':
         case 'B':
+          e.preventDefault()
           navigate('star://bookmarks')
           break
         case 'h':
         case 'H':
+          e.preventDefault()
           navigate('star://history')
           break
         case ',':
+          e.preventDefault()
           navigate('star://settings')
           break
         case 'u':
         case 'U':
+          e.preventDefault()
           reopenLast()
           break
         case '?':
+          e.preventDefault()
           navigate('star://about#shortcuts')
           break
         default:
           if (/^[1-9]$/.test(e.key)) {
+            e.preventDefault()
             const tab = state.tabs[Number(e.key) - 1]
             if (tab) activateTab(tab.id)
           }

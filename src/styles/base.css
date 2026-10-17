@@ -368,6 +368,7 @@ kbd {
   display: flex;
   flex-direction: column;
   isolation: isolate;
+  overflow: hidden;
 }
 
 .shell {
@@ -1274,6 +1275,16 @@ kbd {
 
 .menu-item[data-danger='true'] {
   color: var(--bad);
+}
+
+.menu-item:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.menu-item:disabled:hover {
+  background: transparent;
+  color: var(--text-2);
 }
 
 .menu-sep {

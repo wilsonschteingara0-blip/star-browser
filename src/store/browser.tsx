@@ -312,9 +312,21 @@ function reducer(state: BrowserState, action: Action): BrowserState {
     }
     case 'WAKE_MANY': {
       const ids = new Set(action.ids)
+      let restored = 0
+      let count = 0
+      const tabs = state.tabs.map((t) => {
+        if (!ids.has(t.id) || !t.sleeping) return t
+        restored += Math.max(t.memoryMB - 9, 0)
+        count += 1
+        return { ...t, sleeping: false, lastActiveAt: Date.now() }
+      })
       return {
         ...state,
-        tabs: state.tabs.map((t) => (ids.has(t.id) ? { ...t, sleeping: false, lastActiveAt: Date.now() } : t)),
+        tabs,
+        stats: {
+          hibernated: Math.max(0, state.stats.hibernated - count),
+          ramSavedMB: Math.max(0, state.stats.ramSavedMB - Math.round(restored)),
+        },
       }
     }
     case 'RESTORE_TABS': {
@@ -415,8 +427,6 @@ export interface BrowserApi {
   restoreTabs: (tabs: Tab[]) => void
   hibernateWithUndo: () => void
   wakeTab: (id: string) => void
-  hibernateAll: () => void
-  hibernateInactive: (silent?: boolean) => void
   toggleBookmark: (url?: string, title?: string) => void
   isBookmarked: (url: string) => boolean
   updateSettings: (patch: Partial<Settings>) => void
@@ -504,26 +514,6 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'NEW_TAB', url })
   }, [])
 
-  const hibernateInactive = useCallback(
-    (silent = false) => {
-      const s = stateRef.current
-      const candidates = s.tabs.filter(
-        (t) => t.id !== s.activeId && !t.sleeping && t.kind !== 'internal',
-      )
-      if (candidates.length === 0) {
-        if (!silent) toast('Nothing to hibernate — the other tabs are already resting.', { icon: 'moon' })
-        return
-      }
-      const freed = candidates.reduce((acc, t) => acc + Math.max(t.memoryMB - 9, 0), 0)
-      dispatch({ type: 'SLEEP', ids: candidates.map((t) => t.id) })
-      toast(
-        `${candidates.length} ${candidates.length === 1 ? 'tab' : 'tabs'} hibernated · ${memoryLabel(freed)} freed`,
-        { icon: 'moon', actionLabel: 'Manage tabs', actionUrl: 'star://settings#memory' },
-      )
-    },
-    [toast],
-  )
-
   // Auto-hibernation worker
   useEffect(() => {
     if (!state.settings.memorySaver) return
@@ -609,9 +599,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       wakeTabs: (ids) => dispatch({ type: 'WAKE_MANY', ids }),
       restoreTabs: (tabs) => dispatch({ type: 'RESTORE_TABS', tabs }),
       wakeTab: (id) => dispatch({ type: 'WAKE', id }),
-      hibernateAll: () => hibernateInactive(),
-      hibernateInactive,
-      hibernateWithUndo: () => hibernateWithUndo(),
+      hibernateWithUndo,
       toggleBookmark,
       isBookmarked: (url) => state.bookmarks.some((b) => b.url === url),
       updateSettings,
@@ -625,7 +613,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       removeBookmark: (id) => dispatch({ type: 'REMOVE_BOOKMARK', id }),
       toTab: (tab) => dispatch({ type: 'ACTIVATE', id: tab.id }),
     }
-  }, [state, openUrl, navigate, newTab, hibernateInactive, hibernateWithUndo, toggleBookmark, updateSettings, toast])
+  }, [state, openUrl, navigate, newTab, hibernateWithUndo, toggleBookmark, updateSettings, toast])
 
   return <BrowserContext.Provider value={api}>{children}</BrowserContext.Provider>
 }

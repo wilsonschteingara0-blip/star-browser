@@ -1,20 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowUpRight,
-  Bookmark,
-  CornerDownLeft,
-  Compass,
-  Globe,
-  History as HistoryIcon,
-  Lock,
-  Search,
-  Sparkles,
-} from 'lucide-react'
+import { ArrowUpRight, CornerDownLeft, Compass, Globe, Search, Sparkles } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { ENGINE_URLS, SEARCH_ENGINES, pageTitle as pageTitleOf } from '../lib/sites'
 import { quickSuggestions } from '../lib/search'
 import { fetchWebSuggestions } from '../lib/webSuggestions'
-import { displayAddress, externalPortalUrl, parseAddress, prettyUrl } from '../lib/url'
+import { displayAddress, externalPortalUrl, parseAddress } from '../lib/url'
 import { faviconInfo } from '../lib/sites'
 import { StarMark } from './StarMark'
 
@@ -43,6 +33,7 @@ export function Omnibox() {
   const { state, activeTab, navigate } = useBrowser()
   const [draft, setDraft] = useState(() => displayAddress(activeTab.url))
   const [focused, setFocused] = useState(false)
+  const [typing, setTyping] = useState(false)
   const [selected, setSelected] = useState(0)
   const [web, setWeb] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -71,6 +62,9 @@ export function Omnibox() {
 
   const q = draft.trim()
   const queryActive = focused && q.length > 0
+  // Suggestions appear once you actually type — a freshly focused address bar
+  // stays quiet, like Chrome's.
+  const showSuggestions = focused && typing
   const looksLikeUrl = useMemo(() => {
     if (!q || /\s/.test(q)) return false
     return /^([a-z]+:\/\/|localhost|([a-z0-9-]+\.)+[a-z]{2,})(:\d+)?([/?#].*)?$/i.test(q)
@@ -111,7 +105,7 @@ export function Omnibox() {
   )
 
   useEffect(() => {
-    if (!queryActive || looksLikeUrl) {
+    if (!queryActive || direct) {
       setWeb([])
       return
     }
@@ -125,10 +119,11 @@ export function Omnibox() {
       alive = false
       window.clearTimeout(timer)
     }
-  }, [q, queryActive, looksLikeUrl])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, queryActive, direct])
 
   const rows = useMemo<Row[]>(() => {
-    if (!focused) return []
+    if (!showSuggestions) return []
     if (!queryActive) return idleSuggestions
 
     const list: Row[] = []
@@ -190,11 +185,11 @@ export function Omnibox() {
       })
     }
     return list
-  }, [focused, queryActive, idleSuggestions, direct, looksLikeUrl, q, local, web, engine, engineMeta.label])
+  }, [showSuggestions, queryActive, idleSuggestions, direct, looksLikeUrl, q, local, web, engine, engineMeta.label])
 
   useEffect(() => {
     setSelected(0)
-  }, [draft, focused])
+  }, [draft, focused, typing])
 
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>('[data-selected="true"]')
@@ -219,6 +214,7 @@ export function Omnibox() {
       navigate(chosen.url)
     }
     setFocused(false)
+    setTyping(false)
     inputRef.current?.blur()
   }
 
@@ -243,6 +239,7 @@ export function Omnibox() {
     } else if (e.key === 'Escape') {
       e.preventDefault()
       setDraft(displayAddress(activeTab.url))
+      setTyping(false)
       setFocused(false)
       inputRef.current?.blur()
     }
@@ -269,14 +266,19 @@ export function Omnibox() {
               ? 'Search the constellation, or enter an address'
               : `Search with ${engineMeta.label}, or enter an address`
           }
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setTyping(true)
+            setDraft(e.target.value)
+          }}
           onFocus={(e) => {
             setFocused(true)
-            setDraft(activeTab.url.startsWith('star://') ? activeTab.url : activeTab.url)
+            setTyping(false)
+            setDraft(activeTab.url)
             e.currentTarget.select()
           }}
           onBlur={() => {
             setFocused(false)
+            setTyping(false)
             setDraft(displayAddress(activeTab.url))
           }}
           onKeyDown={onKeyDown}
@@ -296,7 +298,7 @@ export function Omnibox() {
         )}
       </div>
 
-      {focused && (
+      {showSuggestions && (
         <div className="suggest" ref={listRef} onMouseDown={(e) => e.preventDefault()}>
           {!queryActive && <div className="suggest__group-label">Jump back in</div>}
           {rows.map((row, i) => {
@@ -365,15 +367,5 @@ export function Omnibox() {
         </div>
       )}
     </div>
-  )
-}
-
-export function OmniboxBadges() {
-  return (
-    <>
-      <Lock size={12} />
-      <Bookmark size={12} />
-      <HistoryIcon size={12} />
-    </>
   )
 }
