@@ -10,6 +10,8 @@ release their memory when they sleep.
 
 `React 19` · `TypeScript` · `Vite` · `Chromium via Electron` · no accounts, no telemetry
 
+[**Download for Windows, macOS or Linux →**](https://github.com/wilsonschteingara0-blip/star-browser/releases/latest)
+
 </div>
 
 ---
@@ -58,6 +60,13 @@ actual browser.
 | ![New tab](docs/newtab.png) | ![Apps](docs/apps.png) |
 
 ## Run it
+
+The quickest route is a pre-built installer from
+[Releases](https://github.com/wilsonschteingara0-blip/star-browser/releases/latest):
+AppImage, Windows setup and an Apple Silicon DMG, Chromium included. They are
+unsigned, so Windows SmartScreen and macOS Gatekeeper will ask the first time.
+
+Or build it yourself:
 
 ```bash
 npm install       # also downloads the Chromium runtime (~120 MB, one time)
