@@ -1,0 +1,50 @@
+appId: com.starbrowser.app
+productName: Star Browser
+copyright: Copyright © 2026 Star Browser
+
+directories:
+  output: release
+  buildResources: desktop
+
+# The renderer is fully bundled by Vite; the main process only uses Electron
+# and Node built-ins. Shipping the source tree plus dist is enough.
+files:
+  - dist/**/*
+  - desktop/**/*
+  - package.json
+
+asar: true
+npmRebuild: false
+compression: normal
+
+linux:
+  target:
+    - AppImage
+  icon: desktop/icon.png
+  category: Network;WebBrowser
+  synopsis: A calmer, lighter Chromium browser
+  description: Star Browser is a Chromium browser with hibernating tabs and a constellation of local-first tools.
+  maintainer: Star Browser
+  vendor: Star Browser
+
+win:
+  target:
+    - nsis
+  icon: desktop/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: Star Browser
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+  icon: desktop/icon.png
+  identity: null
+
+dmg:
+  title: Star Browser ${version}

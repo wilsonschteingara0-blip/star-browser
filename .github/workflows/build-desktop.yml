@@ -1,0 +1,97 @@
+name: Build desktop browser
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Package ${{ matrix.artifact }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: linux
+          - os: windows-latest
+            artifact: windows
+          - os: macos-latest
+            artifact: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package with Chromium
+        run: npx electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: star-browser-${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            release/*.AppImage
+            release/*.exe
+            release/*.dmg
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        shell: bash
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.value }}
+          name: Star Browser ${{ steps.version.outputs.value }}
+          body: |
+            Star Browser ${{ steps.version.outputs.value }} — the Chromium edition.
+
+            Download the installer for your platform below. The Chromium runtime is included.
+
+            - **Windows**: `.exe` installer (unsigned; SmartScreen may ask for confirmation)
+            - **macOS**: `.dmg` (Apple Silicon; unsigned, right-click → Open the first time)
+            - **Linux**: `.AppImage` (`chmod +x`, then run)
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/**/*.AppImage
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
