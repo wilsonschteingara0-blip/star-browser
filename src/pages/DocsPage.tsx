@@ -6,15 +6,18 @@ import {
   Leaf,
   ShieldCheck,
   Sparkles,
+  Cpu,
 } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { SITES } from '../lib/sites'
 import { ShortcutGrid } from '../components/ShortcutGrid'
+import { CHROMIUM_GITHUB, ELECTRON_GITHUB, isDesktop } from '../lib/desktop'
 
 const SECTIONS = [
   { id: 'start', label: 'Start here' },
   { id: 'apps', label: 'The constellation' },
   { id: 'memory', label: 'Tabs & memory' },
+  { id: 'engine', label: 'Chromium engine' },
   { id: 'shortcuts', label: 'Keyboard shortcuts' },
   { id: 'privacy', label: 'Privacy' },
   { id: 'faq', label: 'Small print & FAQ' },
@@ -44,7 +47,7 @@ export function DocsPage() {
           </a>
         ))}
         <div className="docs-toc-note">
-          Version 1.0 · updated today
+          Version 1.1 · updated today
           <br />
           Written for you, not for a legal department.
         </div>
@@ -79,11 +82,11 @@ export function DocsPage() {
           <div className="callout">
             <Info size={15} />
             <span>
-              <strong>What Star honestly is.</strong> Star is a real browser workspace running in a
-              normal browser tab. The built-in apps — notes, mail, radio, the game, the sky guide —
-              are fully real. For the wider web, Star hands the address to your system browser
-              through the portal instead of pretending to be Chrome. That keeps it light, and keeps
-              other sites from breaking inside a shell.
+              <strong>What Star honestly is.</strong> Star ships in two shapes. The web preview is a
+              workspace running in a normal browser tab; it hands external addresses to your system
+              browser. The desktop edition is a real Chromium browser: external tabs are sandboxed
+              Chromium guests inside Star, and hibernation destroys their renderer processes. The
+              built-in apps — notes, mail, radio, the game, the sky guide — are real in both.
             </span>
           </div>
           <h3>The three things worth knowing</h3>
@@ -166,8 +169,9 @@ export function DocsPage() {
               asleep. Its title, favicon and place in the tab strip stay put.
             </li>
             <li>
-              The moment you click a sleeping tab, it wakes with its address, history and state
-              intact. Nothing is lost.
+              The moment you click a sleeping tab, it wakes at the same address with the same session
+              and cookies. In the desktop app the page reloads on a fresh Chromium renderer — that
+              reload is exactly where the RAM comes back.
             </li>
             <li>
               The active tab is never hibernated, and you can pin a tab awake simply by leaving it in
@@ -181,11 +185,10 @@ export function DocsPage() {
           <div className="callout callout--neutral">
             <Leaf size={15} />
             <span>
-              <strong>About those megabyte numbers.</strong> Star is a web app, so the browser doesn't
-              let it read true process memory. The figures you see are a deliberately conservative
-              model of what each page would cost — consistent enough to show the savings from
-              hibernation. The habit is the real feature: fewer live tabs, less churn, a calmer
-              machine.
+              <strong>About those megabyte numbers.</strong>{' '}
+              {isDesktop()
+                ? "Web tabs are measured from Chromium's own renderer processes, so the panel shows the real cost of a page and the real saving when it sleeps. Star's shell baseline is still a conservative model."
+                : "The web preview cannot read process memory, so the figures are a deliberately conservative model. In the desktop app, Chromium's real counters replace the model — and hibernation destroys the renderer for real."}
             </span>
           </div>
           <h3>Keeping it light</h3>
@@ -194,6 +197,62 @@ export function DocsPage() {
             app is a single small page. The drifting aurora is CSS, the stars are SVG, and the
             "reduce motion" switch in Settings turns all of it down.
           </p>
+        </section>
+
+        <section id="docs-engine">
+          <h2>Under the hood: Chromium</h2>
+          <p className="lead">
+            The desktop edition of Star is a Chromium browser. The same open-source engine Chrome is
+            built on renders every external tab; Star supplies only the quiet chrome around it.
+          </p>
+          <p>
+            Chromium is wired in through Electron, which packages the engine and its multi-process
+            renderer without bundling Google's services. The source of both is public:{' '}
+            <a className="inline-link" href={CHROMIUM_GITHUB} target="_blank" rel="noreferrer">
+              chromium/chromium
+            </a>{' '}
+            and{' '}
+            <a className="inline-link" href={ELECTRON_GITHUB} target="_blank" rel="noreferrer">
+              electron/electron
+            </a>
+            .
+          </p>
+
+          <h3>How an external tab works</h3>
+          <ul>
+            <li>
+              Every awake web tab is a <strong>sandboxed Chromium guest</strong> in its own renderer
+              process. It shares one persistent session, so logins and cookies follow you between
+              tabs and restarts.
+            </li>
+            <li>
+              Hibernating or closing a tab <strong>destroys the guest</strong>. There is no hidden
+              window left running: the memory panel's number is measured from the process before it
+              goes.
+            </li>
+            <li>
+              The address bar, arrows and reload button drive Chromium's <strong>real session
+              history</strong>, not a copy of it. Links that demand a new window become new Star tabs.
+            </li>
+            <li>
+              Guests get no Node, no preload and no bridge. Star only grants fullscreen and clipboard
+              writes; camera, microphone, location and notifications are denied by default.
+            </li>
+            <li>
+              Downloads use the normal save dialog. Restored background tabs start asleep, so a
+              twenty-tab session does not boot twenty renderers.
+            </li>
+          </ul>
+
+          <div className="callout">
+            <Cpu size={15} />
+            <span>
+              <strong>Run it.</strong> Install once with <code>npm install</code>, then{' '}
+              <code>npm run desktop</code> to build and open the Chromium window. While developing,{' '}
+              <code>npm run desktop:dev</code> starts Vite and the shell together. The web preview
+              keeps working with no Electron at all.
+            </span>
+          </div>
         </section>
 
         <section id="docs-shortcuts">
@@ -231,9 +290,10 @@ export function DocsPage() {
               </li>
               <li>
                 <ShieldCheck size={13} />
-                <span>If you pick Google, DuckDuckGo or Bing as your engine, Star opens that search
-                in your system browser through the portal. After that, their privacy policy applies —
-                not this one.</span>
+                <span>If you pick Google, DuckDuckGo or Bing as your engine, the search page opens
+                in a Chromium tab {isDesktop() ? 'inside Star' : 'through the portal'}. After that,
+                that site's privacy policy applies — not this one. Star never ships your keystrokes
+                to a search engine on its own.</span>
               </li>
             </div>
             <div className="callout callout--neutral">
@@ -256,15 +316,17 @@ export function DocsPage() {
           <h2>Small print &amp; FAQ</h2>
           <h3>Is Star a replacement for Chrome?</h3>
           <p>
-            It is a replacement for the <em>feeling</em> of Chrome: a calmer start page, fewer
-            background processes, useful things built in. Under the hood it uses your browser's
-            engine, so external pages open in your browser.
+            The desktop edition is a Chromium browser with a calmer face: the engine is the same, the
+            services, sync and extension surface are not. The web preview is a lighter workspace that
+            hands external pages to your default browser. They share an interface and a local-first
+            model, not data: each installation keeps its own tabs, notes and history.
           </p>
           <h3>Does it really save RAM?</h3>
           <p>
-            Star itself is small, and its hibernation logic is real. The megabyte readouts are
-            modelled rather than measured — see the note above. If you want the feeling of a lighter
-            browser, closing unused tabs is still the biggest win, and Star makes that pleasant.
+            In the desktop app, yes — and you can watch it happen. A hibernated web tab has no
+            Chromium renderer left alive; the panel's figures are read from the process before it is
+            destroyed. The web preview can only model those numbers, but the habit — fewer live tabs,
+            less churn — is identical.
           </p>
           <h3>Where do my notes and mail go?</h3>
           <p>

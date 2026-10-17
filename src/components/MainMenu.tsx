@@ -14,10 +14,12 @@ import {
   Sun,
   Laptop,
   Keyboard,
+  Cpu,
 } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { useClickOutside } from '../lib/hooks'
 import type { ThemeId } from '../lib/types'
+import { engineLabel } from '../lib/desktop'
 
 const THEMES: Array<{ id: ThemeId; label: string; icon: typeof Moon }> = [
   { id: 'midnight', label: 'Midnight', icon: Moon },
@@ -132,6 +134,10 @@ export function MainMenu({ onOpenPalette }: { onOpenPalette: () => void }) {
           >
             {state.settings.memorySaver ? <Leaf size={14} /> : <Laptop size={14} />}
             Memory saver: {state.settings.memorySaver ? 'on' : 'off'}
+          </button>
+          <button className="menu-item" onClick={() => go('star://about#engine')}>
+            <Cpu size={14} /> Engine
+            <span className="menu-item__kbd">{engineLabel()}</span>
           </button>
           <button className="menu-item" onClick={() => go('star://about')}>
             <Info size={14} /> About Star Browser

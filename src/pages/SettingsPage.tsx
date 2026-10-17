@@ -14,6 +14,7 @@ import {
   Sparkles,
   Trash2,
   ArrowUpRight,
+  Globe,
 } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { useMemoryStats, CHROME_MEMORY_MB } from '../components/MemoryPanel'
@@ -21,6 +22,15 @@ import { SEARCH_ENGINES } from '../lib/sites'
 import { faviconInfo } from '../lib/sites'
 import { exportBrowserData, eraseEverything } from '../lib/data'
 import { memoryLabel } from '../lib/utils'
+import {
+  CHROMIUM_GITHUB,
+  ELECTRON_GITHUB,
+  chromiumVersion,
+  electronVersion,
+  engineLabel,
+  isDesktop,
+  openExternalUrl,
+} from '../lib/desktop'
 import type { ThemeId } from '../lib/types'
 import { MoonStar } from 'lucide-react'
 
@@ -35,6 +45,7 @@ const NAV = [
   { id: 'memory', label: 'Memory', icon: Cpu },
   { id: 'search', label: 'Search', icon: Search },
   { id: 'privacy', label: 'Privacy & data', icon: ShieldCheck },
+  { id: 'engine', label: 'Engine', icon: Globe },
   { id: 'about', label: 'About', icon: Info },
 ]
 
@@ -127,7 +138,7 @@ export function SettingsPage({ url }: { url: string }) {
               A few quiet dials. Everything here is stored locally and applies immediately.
             </p>
           </div>
-          <span className="about-version">v1.0.0</span>
+          <span className="about-version">v1.1.0</span>
         </div>
 
         <section className="settings-section" id="settings-appearance">
@@ -312,9 +323,9 @@ export function SettingsPage({ url }: { url: string }) {
           </div>
 
           <div style={{ padding: '0 18px 14px', fontSize: 10.5, color: 'var(--faint)', lineHeight: 1.6 }}>
-            Memory figures are Star's own model, tuned to typical per-tab costs. Your browser doesn't
-            expose real process memory to a web app, but the hibernation savings are real in the sense
-            that mattered: hibernated tabs drop their live page state and wake instantly.
+            {isDesktop()
+              ? "External tabs are measured from the Chromium renderer process that owns them. Hibernating a tab destroys that process; the saved figure is the memory that actually went back to your machine. Star's own shell baseline is still a conservative model."
+              : "Memory figures are Star's own model, tuned to typical per-tab costs. A web preview can't read process memory. In the desktop app, Chromium's real counters replace the model — and hibernation destroys the renderer for real."}
           </div>
         </section>
 
@@ -326,8 +337,9 @@ export function SettingsPage({ url }: { url: string }) {
             <div>
               <div className="settings-section__title">Search</div>
               <div className="settings-section__sub">
-                Star Search answers from the constellation and your own pages. Other engines hand the
-                query to your system browser.
+                {isDesktop()
+                  ? 'Star Search answers from the constellation and your own pages. Other engines open in a Chromium tab.'
+                  : 'Star Search answers from the constellation and your own pages. Other engines hand the query to your system browser.'}
               </div>
             </div>
           </div>
@@ -364,8 +376,9 @@ export function SettingsPage({ url }: { url: string }) {
               })}
             </div>
             <div style={{ fontSize: 10.5, color: 'var(--faint)', lineHeight: 1.6 }}>
-              Searching with Google, DuckDuckGo or Bing opens the search in your system browser through
-              the portal. Star never sends your keystrokes to a search engine.
+              {isDesktop()
+                ? 'Searching with Google, DuckDuckGo or Bing opens that page in a Chromium tab inside Star. Star itself never sends your keystrokes to a search engine.'
+                : 'Searching with Google, DuckDuckGo or Bing opens the search in your system browser through the portal. The desktop app keeps it in a Chromium tab instead.'}
             </div>
           </div>
         </section>
@@ -456,6 +469,75 @@ export function SettingsPage({ url }: { url: string }) {
           </div>
         </section>
 
+        <section className="settings-section" id="settings-engine">
+          <div className="settings-section__head">
+            <span className="settings-section__icon">
+              <Globe size={15} />
+            </span>
+            <div>
+              <div className="settings-section__title">Engine</div>
+              <div className="settings-section__sub">
+                Chromium does the rendering. Star keeps it quiet.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="engine-panel">
+              <span className="engine-panel__mark">
+                <Globe size={18} />
+              </span>
+              <div className="engine-panel__text">
+                <div className="engine-panel__name">{engineLabel()}</div>
+                <div className="engine-panel__sub">
+                  {isDesktop()
+                    ? 'The open-source engine behind Chrome, running every external tab as a sandboxed guest process.'
+                    : 'The desktop app runs Star on Chromium. This preview is using your browser and hands external pages over.'}
+                </div>
+              </div>
+              <div className="engine-facts">
+                <div className="engine-fact">
+                  <span className="engine-fact__label">Chromium</span>
+                  <span className="engine-fact__value">
+                    {isDesktop() ? chromiumVersion() : 'desktop app'}
+                  </span>
+                </div>
+                <div className="engine-fact">
+                  <span className="engine-fact__label">Electron</span>
+                  <span className="engine-fact__value">
+                    {isDesktop() ? electronVersion() : '→ npm run desktop'}
+                  </span>
+                </div>
+                <div className="engine-fact">
+                  <span className="engine-fact__label">Licence</span>
+                  <span className="engine-fact__value">BSD-3-Clause</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+              <button className="btn btn--sm" onClick={() => openExternalUrl(CHROMIUM_GITHUB)}>
+                chromium/chromium <ArrowUpRight size={12} />
+              </button>
+              <button className="btn btn--sm" onClick={() => openExternalUrl(ELECTRON_GITHUB)}>
+                electron/electron <ArrowUpRight size={12} />
+              </button>
+              <button className="btn btn--sm" onClick={() => navigate('star://about#engine')}>
+                About the engine
+              </button>
+            </div>
+
+            <div className="engine-note">
+              <ShieldCheck size={11} />
+              <span>
+                Guests run with context isolation on, Node off, a shared persistent session and a
+                permission handler that only grants fullscreen and clipboard writes. No preload, no
+                bridge, no extension surface.
+              </span>
+            </div>
+          </div>
+        </section>
+
         <section className="settings-section" id="settings-about">
           <div className="settings-section__head">
             <span className="settings-section__icon">
@@ -463,7 +545,7 @@ export function SettingsPage({ url }: { url: string }) {
             </span>
             <div>
               <div className="settings-section__title">About Star Browser</div>
-              <div className="settings-section__sub">Version 1.0.0 · the constellation edition</div>
+              <div className="settings-section__sub">Version 1.1.0 · the constellation edition</div>
             </div>
           </div>
           <div className="danger-zone">

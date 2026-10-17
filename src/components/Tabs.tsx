@@ -10,6 +10,7 @@ import {
 import { useBrowser } from '../store/browser'
 import { faviconInfo } from '../lib/sites'
 import type { Tab } from '../lib/types'
+import { navController } from '../lib/navigation'
 
 interface MenuState {
   tab: Tab
@@ -103,7 +104,21 @@ export function TabStrip() {
                 className="tab__favicon"
                 style={{ '--fa': info.accent[0], '--fb': info.accent[1] } as React.CSSProperties}
               >
-                {tab.sleeping ? <Moon size={11} strokeWidth={2.4} /> : <Icon size={11} strokeWidth={2.4} />}
+                {tab.sleeping ? (
+                  <Moon size={11} strokeWidth={2.4} />
+                ) : tab.favicon ? (
+                  <img
+                    src={tab.favicon}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    onError={(event) => {
+                      event.currentTarget.remove()
+                    }}
+                  />
+                ) : (
+                  <Icon size={11} strokeWidth={2.4} />
+                )}
               </span>
               <span className="tab__title">{tab.title || 'New Tab'}</span>
               {tab.sleeping && <span className="tab__sleep-badge">z z</span>}
@@ -135,8 +150,15 @@ export function TabStrip() {
           <button
             className="menu-item"
             onClick={() => {
-              if (menu.tab.id !== state.activeId) activateTab(menu.tab.id)
-              navigate(menu.tab.url)
+              const controller = navController(menu.tab.id)
+              if (controller) {
+                controller.reload()
+              } else if (menu.tab.id !== state.activeId) {
+                // Activating a sleeping tab wakes it, which reloads the page.
+                activateTab(menu.tab.id)
+              } else {
+                navigate(menu.tab.url)
+              }
               setMenu(null)
             }}
           >

@@ -11,6 +11,11 @@ export interface Tab {
   createdAt: number
   lastActiveAt: number
   memoryMB: number
+  /** Real favicon reported by Chromium, when a web page is open. */
+  favicon?: string
+  /** Live Chromium history state for external pages in the desktop app. */
+  canBack?: boolean
+  canForward?: boolean
   back: string[]
   forward: string[]
 }

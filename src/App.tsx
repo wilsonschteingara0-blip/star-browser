@@ -21,6 +21,12 @@ import { DocsPage } from './pages/DocsPage'
 import { AboutPage } from './pages/AboutPage'
 import { ExternalPortal } from './pages/ExternalPortal'
 import { StarMark } from './components/StarMark'
+import { ChromiumLayer } from './components/ChromiumLayer'
+import { WindowControls } from './components/WindowControls'
+import { DesktopBridge } from './components/DesktopBridge'
+import { FindBar } from './components/FindBar'
+import { desktop, isDesktop } from './lib/desktop'
+import { navController } from './lib/navigation'
 
 // The constellation apps carry real weight (canvas, Web Audio, editors), so
 // they are split out and fetched the first time you open them. The shell
@@ -85,12 +91,36 @@ export default function App() {
     toggleZen,
     activateTab,
     reopenLast,
+    closeTab,
+    reload,
+    back,
+    forward,
   } = useBrowser()
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
   const viewportRef = useRef<HTMLDivElement>(null)
   const zen = state.zen
+  const nativeWeb =
+    isDesktop() && activeTab.kind === 'external' && /^https?:/i.test(activeTab.url)
 
   const closePalette = useCallback(() => setPaletteOpen(false), [])
+
+  // The Chromium shell forwards shortcuts pressed inside a guest page here.
+  useEffect(() => {
+    const toggle = () => setPaletteOpen((open) => !open)
+    const openFind = () => setFindOpen(true)
+    window.addEventListener('star:toggle-palette', toggle)
+    window.addEventListener('star:open-find', openFind)
+    return () => {
+      window.removeEventListener('star:toggle-palette', toggle)
+      window.removeEventListener('star:open-find', openFind)
+    }
+  }, [])
+
+  // The find bar belongs to a Chromium page, not to Star's own pages.
+  useEffect(() => {
+    if (!nativeWeb) setFindOpen(false)
+  }, [nativeWeb, activeTab.id])
 
   // A freshly opened tab puts the cursor in the address bar, like a real
   // browser. The page's own search field is there for anyone who clicks it.
@@ -99,6 +129,11 @@ export default function App() {
       focusOmnibox()
     }
   }, [activeTab.id, activeTab.url, activeTab.createdAt])
+
+  // Like a real browser: the window title follows the page.
+  useEffect(() => {
+    document.title = activeTab.title ? `${activeTab.title} · Star Browser` : 'Star Browser'
+  }, [activeTab.title])
 
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: 0, behavior: 'auto' })
@@ -127,7 +162,74 @@ export default function App() {
         focusOmnibox()
         return
       }
+
+      // Chromium-shell shortcuts when the Star chrome itself has focus.
+      // (Inside a page, the main process forwards these same actions.)
+      if (isDesktop() && !e.repeat) {
+        const lower = e.key.toLowerCase()
+        if (mod && lower === 't') {
+          e.preventDefault()
+          if (e.shiftKey) reopenLast()
+          else newTab()
+          return
+        }
+        if (mod && lower === 'w') {
+          e.preventDefault()
+          closeTab(activeTab.id)
+          return
+        }
+        if (mod && lower === 'f') {
+          if (nativeWeb) {
+            e.preventDefault()
+            setFindOpen(true)
+          }
+          return
+        }
+        if (mod && lower === 'r') {
+          e.preventDefault()
+          const controller = navController(activeTab.id)
+          if (controller) controller.reload(e.shiftKey)
+          else reload()
+          return
+        }
+        if (mod && e.key === 'Tab') {
+          e.preventDefault()
+          if (state.tabs.length > 1) {
+            const index = state.tabs.findIndex((tab) => tab.id === activeTab.id)
+            const step = e.shiftKey ? -1 : 1
+            const next = state.tabs[(index + step + state.tabs.length) % state.tabs.length]
+            if (next) activateTab(next.id)
+          }
+          return
+        }
+        if (mod && /^[1-9]$/.test(e.key)) {
+          e.preventDefault()
+          const target = state.tabs[Number(e.key) - 1]
+          if (target) activateTab(target.id)
+          return
+        }
+        if (e.altKey && e.key === 'ArrowLeft') {
+          e.preventDefault()
+          back()
+          return
+        }
+        if (e.altKey && e.key === 'ArrowRight') {
+          e.preventDefault()
+          forward()
+          return
+        }
+        if (e.key === 'F5') {
+          e.preventDefault()
+          reload()
+          return
+        }
+      }
+
       if (e.key === 'Escape') {
+        if (findOpen) {
+          setFindOpen(false)
+          return
+        }
         if (paletteOpen) {
           setPaletteOpen(false)
           return
@@ -195,6 +297,8 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [
     paletteOpen,
+    findOpen,
+    nativeWeb,
     zen,
     state.tabs,
     newTab,
@@ -203,19 +307,33 @@ export default function App() {
     toggleZen,
     activateTab,
     reopenLast,
+    closeTab,
+    reload,
+    back,
+    forward,
+    activeTab.id,
   ])
 
   return (
-    <div className="app" data-zen={zen}>
+    <div className="app" data-zen={zen} data-desktop={isDesktop()}>
       <Backdrop />
 
       <header className="chrome">
-        <div className="tabs-row">
+        <div
+          className="tabs-row"
+          onDoubleClick={(event) => {
+            if (!isDesktop()) return
+            const target = event.target as HTMLElement
+            if (target.closest('button, input, select, .tab, .memory-pill, .window-controls')) return
+            void desktop()?.window.toggleMaximize()
+          }}
+        >
           <Brand />
           <TabStrip />
           <div className="window-actions">
             <MemoryPill />
             <MainMenu onOpenPalette={() => setPaletteOpen(true)} />
+            <WindowControls />
           </div>
         </div>
         <Toolbar onOpenPalette={() => setPaletteOpen(true)} />
@@ -223,18 +341,23 @@ export default function App() {
       </header>
 
       <main className="shell">
-        <div className="viewport" ref={viewportRef}>
-          <div className="viewport__inner" data-page={activeTab.kind} key={`${activeTab.id}:${activeTab.url}`}>
-            <Suspense fallback={<PageFallback />}>
-              <PageRouter />
-            </Suspense>
-          </div>
+        <div className="viewport" ref={viewportRef} data-native={nativeWeb}>
+          {!nativeWeb && (
+            <div className="viewport__inner" data-page={activeTab.kind} key={`${activeTab.id}:${activeTab.url}`}>
+              <Suspense fallback={<PageFallback />}>
+                <PageRouter />
+              </Suspense>
+            </div>
+          )}
+          <ChromiumLayer />
+          {findOpen && nativeWeb && <FindBar onClose={() => setFindOpen(false)} />}
         </div>
         <StatusBar />
       </main>
 
       <Toasts />
       <CommandPalette open={paletteOpen} onClose={closePalette} />
+      <DesktopBridge />
 
       {zen && (
         <div className="zen-hint">

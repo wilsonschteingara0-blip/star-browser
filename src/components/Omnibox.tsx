@@ -7,6 +7,7 @@ import { fetchWebSuggestions } from '../lib/webSuggestions'
 import { displayAddress, externalPortalUrl, parseAddress } from '../lib/url'
 import { faviconInfo } from '../lib/sites'
 import { StarMark } from './StarMark'
+import { isDesktop } from '../lib/desktop'
 
 type RowKind = 'open' | 'search' | 'local' | 'web'
 
@@ -39,6 +40,7 @@ export function Omnibox() {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  const native = isDesktop()
   const engine = state.settings.searchEngine
   const engineMeta = SEARCH_ENGINES.find((e) => e.id === engine) ?? SEARCH_ENGINES[0]
 
@@ -134,8 +136,8 @@ export function Omnibox() {
         id: 'open',
         kind: 'open',
         title: isExternal ? direct.replace(/^https?:\/\//, '') : pageTitleOf(direct),
-        subtitle: isExternal ? 'Open through the portal' : direct,
-        badge: isExternal ? 'Portal' : 'Built-in',
+        subtitle: isExternal ? (native ? 'Open in a Chromium tab' : 'Open through the portal') : direct,
+        badge: isExternal ? (native ? 'Chromium' : 'Portal') : 'Built-in',
         url: direct,
         icon: isExternal ? Globe : info.icon,
         accent: isExternal ? undefined : info.accent,
@@ -150,7 +152,9 @@ export function Omnibox() {
           ? direct
             ? 'Search the constellation instead'
             : 'Search the constellation'
-          : `Search with ${engineMeta.label} in your system browser`,
+          : native
+            ? `Search with ${engineMeta.label} in a Chromium tab`
+            : `Search with ${engineMeta.label} in your system browser`,
       badge: engine === 'star' ? 'Star Search' : engineMeta.label,
       query: q,
       icon: engine === 'star' ? Sparkles : Search,
@@ -222,7 +226,8 @@ export function Omnibox() {
     if (engine === 'star') {
       navigate(`star://search?q=${encodeURIComponent(query)}`)
     } else {
-      navigate(externalPortalUrl(ENGINE_URLS[engine](query)))
+      const target = ENGINE_URLS[engine](query)
+      navigate(native ? target : externalPortalUrl(target))
     }
   }
 
@@ -250,7 +255,10 @@ export function Omnibox() {
   return (
     <div className={`omnibox ${focused ? 'omnibox--focused' : ''}`}>
       <div className="omnibox__field">
-        <span className="omnibox__secure" title={secure ? 'Star keeps this page local' : 'Opens outside Star'}>
+        <span
+          className="omnibox__secure"
+          title={secure ? 'Star keeps this page local' : native ? 'Opens in a Chromium tab' : 'Opens outside Star'}
+        >
           {secure ? <StarMark size={15} gradient /> : <Globe size={15} />}
         </span>
         <input
@@ -360,7 +368,15 @@ export function Omnibox() {
               </span>
               <span className="suggest__footer-group">
                 {looksLikeUrl ? <Globe size={10} /> : <Search size={10} />}
-                {looksLikeUrl ? 'Opens through the portal' : engine === 'star' ? 'Star answers locally' : `Hands off to ${engineMeta.label}`}
+                {looksLikeUrl
+                  ? native
+                    ? 'Opens in a Chromium tab'
+                    : 'Opens through the portal'
+                  : engine === 'star'
+                    ? 'Star answers locally'
+                    : native
+                      ? `Searches ${engineMeta.label} in Chromium`
+                      : `Hands off to ${engineMeta.label}`}
               </span>
             </div>
           )}

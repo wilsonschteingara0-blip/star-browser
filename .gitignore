@@ -1,6 +1,8 @@
 node_modules
 dist
 dist-ssr
+release
+out
 *.local
 .DS_Store
 .vite

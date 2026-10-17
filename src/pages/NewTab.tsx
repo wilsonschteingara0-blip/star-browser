@@ -15,6 +15,7 @@ import { formatClock, formatDateLine, greeting, memoryLabel, timeAgo } from '../
 import { moonInfo } from '../lib/sky'
 import { faviconInfo } from '../lib/sites'
 import { StarMark } from '../components/StarMark'
+import { isDesktop } from '../lib/desktop'
 import { useMemoryStats } from '../components/MemoryPanel'
 import type { SearchEngineId } from '../lib/types'
 
@@ -55,7 +56,8 @@ export function NewTab() {
     } else if (engine === 'star') {
       navigate(`star://search?q=${encodeURIComponent(q)}`)
     } else {
-      navigate(externalPortalUrl(ENGINE_URLS[engine](q)))
+      const target = ENGINE_URLS[engine](q)
+      navigate(isDesktop() ? target : externalPortalUrl(target))
     }
     setQuery('')
   }

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ArrowUpRight, Leaf, Moon, Settings2, Snowflake } from 'lucide-react'
+import { ArrowUpRight, Cpu, Leaf, Moon, Settings2, Snowflake } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { useClickOutside } from '../lib/hooks'
 import { faviconInfo } from '../lib/sites'
 import { memoryLabel } from '../lib/utils'
+import { isDesktop } from '../lib/desktop'
 
 export const CHROME_MEMORY_MB = 128
 const SLEEPING_MEMORY_MB = 9
@@ -56,6 +57,7 @@ export function MemoryPill() {
               <div className="memory-panel__title">Memory</div>
               <div className="memory-panel__sub">
                 {state.tabs.length} tabs · {state.settings.memorySaver ? 'Memory saver on' : 'Memory saver off'}
+                {isDesktop() ? ' · web tabs measured' : ''}
               </div>
             </div>
             <div className="memory-total">
@@ -162,6 +164,15 @@ export function MemoryPill() {
               <Settings2 size={12} /> Manage
             </button>
           </div>
+
+          {isDesktop() && (
+            <div className="memory-panel__measured">
+              <Cpu size={10} />
+              <span>
+                Web tabs are measured from Chromium's renderer processes. Star's own chrome is modelled.
+              </span>
+            </div>
+          )}
 
           <div className="memory-panel__saved">
             <Snowflake size={10} />

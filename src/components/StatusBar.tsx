@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Command, Leaf, Moon } from 'lucide-react'
+import { Command, Cpu, Globe, Leaf, Moon } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { displayAddress } from '../lib/url'
 import { formatClock, memoryLabel } from '../lib/utils'
 import { useMemoryStats } from './MemoryPanel'
+import { engineDetail, engineLabel, isDesktop } from '../lib/desktop'
 
 export function StatusBar() {
   const { state, activeTab, navigate } = useBrowser()
@@ -26,6 +27,18 @@ export function StatusBar() {
         <span className="statusbar__item" style={{ color: 'var(--muted)' }}>
           {displayAddress(activeTab.url)}
         </span>
+        <button
+          className="statusbar__action tooltip"
+          data-tip={
+            isDesktop()
+              ? engineDetail()
+              : 'The desktop app renders pages with Chromium — click to see the engine'
+          }
+          onClick={() => navigate('star://about#engine')}
+        >
+          {isDesktop() ? <Cpu size={10} /> : <Globe size={10} />}
+          {engineLabel()}
+        </button>
         <span className="statusbar__item">
           {state.tabs.length} {state.tabs.length === 1 ? 'tab' : 'tabs'}
           {sleepers > 0 && (

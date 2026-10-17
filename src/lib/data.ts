@@ -4,7 +4,7 @@ import { resetSavedState } from '../store/browser'
 export function exportBrowserData(state: BrowserState) {
   const payload = {
     app: 'Star Browser',
-    version: '1.0.0',
+    version: '1.1.0',
     exportedAt: new Date().toISOString(),
     bookmarks: state.bookmarks,
     history: state.history,

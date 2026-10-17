@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowUpRight, Copy, Globe, Lock, ShieldCheck, Star } from 'lucide-react'
 import { useBrowser } from '../store/browser'
 import { externalUrlOf } from '../lib/url'
+import { isDesktop, openExternalUrl } from '../lib/desktop'
 
 export function ExternalPortal({ url }: { url: string }) {
   const { navigate, toggleBookmark, isBookmarked, toast } = useBrowser()
@@ -16,9 +17,10 @@ export function ExternalPortal({ url }: { url: string }) {
   }
 
   const bookmarked = isBookmarked(target)
+  const native = isDesktop()
 
   const openExternal = () => {
-    window.open(target, '_blank', 'noopener,noreferrer')
+    openExternalUrl(target)
     toast('Handed off to your system browser', { icon: 'info' })
   }
 
@@ -30,7 +32,7 @@ export function ExternalPortal({ url }: { url: string }) {
             <Globe size={24} strokeWidth={1.8} />
           </span>
           <span className="chip" style={{ height: 24, fontSize: 10 }}>
-            <Lock size={10} /> open web
+            <Lock size={10} /> {native ? 'chromium hand-off' : 'open web'}
           </span>
         </div>
 
@@ -38,8 +40,9 @@ export function ExternalPortal({ url }: { url: string }) {
           <div className="portal__eyebrow">You're at the edge of the constellation</div>
           <h1 className="portal__host">{host}</h1>
           <p className="portal__note" style={{ marginTop: 8 }}>
-            Star doesn't load external pages itself. It hands them to your system browser so you get
-            the real thing — and Star stays light.
+            {native
+              ? "This page should be running on Chromium inside Star. The guest didn't attach, so here's a clean hand-off instead."
+              : 'Star\'s web preview cannot embed other sites, so it hands them to your system browser. The desktop app loads them with Chromium instead — no hand-off, no second window.'}
           </p>
         </div>
 
@@ -74,11 +77,17 @@ export function ExternalPortal({ url }: { url: string }) {
         <div className="portal__note">
           <ShieldCheck size={13} />
           <span>
-            Why a portal? Most of the modern web refuses to be embedded, and routing you through an
-            iframe would only break pages. This way your bookmarks and history stay in Star, and the
-            actual site opens where it belongs.
+            {native
+              ? 'In the desktop app every external tab is a sandboxed Chromium renderer. Hibernating or closing it destroys that process, which is where the memory goes back.'
+              : 'Why a portal? The web preview is not allowed to embed most of the modern web, and an iframe would only break pages. The Chromium desktop app is the real thing.'}
           </span>
         </div>
+
+        {!native && (
+          <button className="portal__engine-link" onClick={() => navigate('star://about#engine')}>
+            How Star runs Chromium on the desktop <ArrowUpRight size={11} />
+          </button>
+        )}
       </div>
     </div>
   )

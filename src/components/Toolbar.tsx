@@ -12,6 +12,7 @@ import { useBrowser } from '../store/browser'
 import { Omnibox } from './Omnibox'
 import { useMemoryStats } from './MemoryPanel'
 import { memoryLabel } from '../lib/utils'
+import { canGoBack, canGoForward } from '../lib/navigation'
 
 export function Toolbar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const {
@@ -36,7 +37,7 @@ export function Toolbar({ onOpenPalette }: { onOpenPalette: () => void }) {
           className="icon-btn tooltip"
           data-tip="Back"
           onClick={back}
-          disabled={activeTab.back.length === 0}
+          disabled={!canGoBack(activeTab)}
           aria-label="Back"
         >
           <ArrowLeft size={17} />
@@ -45,7 +46,7 @@ export function Toolbar({ onOpenPalette }: { onOpenPalette: () => void }) {
           className="icon-btn tooltip"
           data-tip="Forward"
           onClick={forward}
-          disabled={activeTab.forward.length === 0}
+          disabled={!canGoForward(activeTab)}
           aria-label="Forward"
         >
           <ArrowRight size={17} />

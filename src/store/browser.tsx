@@ -20,8 +20,10 @@ import type {
   Toast,
 } from '../lib/types'
 import { memoryBaseline, pageKind, pageTitle, STAR_SEED_BOOKMARKS, STAR_SEED_HISTORY } from '../lib/sites'
-import { parseAddress } from '../lib/url'
+import { externalUrlOf, parseAddress } from '../lib/url'
 import { memoryLabel, uid } from '../lib/utils'
+import { isDesktop } from '../lib/desktop'
+import { navController } from '../lib/navigation'
 
 const STORAGE_KEY = 'star-browser:state:v1'
 const MAX_HISTORY = 400
@@ -47,6 +49,8 @@ export function createTab(url = 'star://newtab', kind?: PageKind): Tab {
     createdAt: Date.now(),
     lastActiveAt: Date.now(),
     memoryMB: memoryBaseline(url),
+    canBack: false,
+    canForward: false,
     back: [],
     forward: [],
   }
@@ -98,6 +102,7 @@ type Action =
   | { type: 'BACK'; id: string }
   | { type: 'FORWARD'; id: string }
   | { type: 'RELOAD'; id: string }
+  | { type: 'SYNC_TAB'; id: string; patch: Partial<Tab> }
   | { type: 'SLEEP'; ids: string[] }
   | { type: 'WAKE'; id: string }
   | { type: 'WAKE_MANY'; ids: string[] }
@@ -146,15 +151,37 @@ function reducer(state: BrowserState, action: Action): BrowserState {
         }
       }
       const restore = saved.settings?.restoreSession ?? DEFAULT_SETTINGS.restoreSession
-      const tabs =
+      // A session saved by the web preview may still contain portal URLs. In
+      // the desktop app those should be real pages, not the hand-off screen.
+      const normalize = (url: string) =>
+        isDesktop() && url.startsWith('star://external') ? externalUrlOf(url) || url : url
+      const restored =
         restore && saved.tabs && saved.tabs.length > 0
-          ? saved.tabs.map((t) => ({
-              ...t,
-              memoryMB: memoryBaseline(t.url),
-              sleeping: false,
-            }))
+          ? saved.tabs.map((t) => {
+              const url = normalize(t.url)
+              return {
+                ...t,
+                url,
+                title: pageTitle(url),
+                kind: pageKind(url),
+                memoryMB: memoryBaseline(url),
+                favicon: t.favicon,
+                canBack: false,
+                canForward: false,
+                sleeping: false,
+                back: [],
+                forward: [],
+              }
+            })
           : [createTab()]
-      const activeId = tabs.some((t) => t.id === saved.activeId) ? (saved.activeId as string) : tabs[0].id
+      const activeId = restored.some((t) => t.id === saved.activeId)
+        ? (saved.activeId as string)
+        : restored[0].id
+      // Restored background pages come back asleep: Chromium only starts a
+      // renderer for the tab you are actually looking at.
+      const tabs = restored.map((t) =>
+        isDesktop() && t.kind === 'external' && t.id !== activeId ? { ...t, sleeping: true } : t,
+      )
       return {
         ...state,
         ...saved,
@@ -283,6 +310,47 @@ function reducer(state: BrowserState, action: Action): BrowserState {
         ...state,
         tabs: state.tabs.map((t) => (t.id === action.id ? { ...touch(t), lastActiveAt: Date.now() } : t)),
       }
+    }
+    case 'SYNC_TAB': {
+      // Chromium owns the page's URL, title, favicon and history. Mirror them
+      // into state without touching the modelled back/forward stacks.
+      let history = state.history
+      const tabs = state.tabs.map((t) => {
+        if (t.id !== action.id) return t
+        const url = action.patch.url ?? t.url
+        const urlChanged = url !== t.url
+        const next: Tab = {
+          ...t,
+          ...action.patch,
+          title: action.patch.title ?? t.title,
+          memoryMB: action.patch.memoryMB ?? t.memoryMB,
+          kind: urlChanged ? pageKind(url) : t.kind,
+        }
+        if (urlChanged && !url.startsWith('star://')) {
+          const top = history[0]
+          if (!top || top.url !== url) {
+            history = [
+              {
+                id: uid('h'),
+                url,
+                title: next.title || pageTitle(url),
+                visitedAt: Date.now(),
+              },
+              ...history,
+            ].slice(0, MAX_HISTORY)
+          }
+        } else if (
+          action.patch.title &&
+          history[0] &&
+          history[0].url === url &&
+          history[0].title !== action.patch.title
+        ) {
+          // The real page title usually arrives just after the navigation.
+          history = [{ ...history[0], title: action.patch.title }, ...history.slice(1)]
+        }
+        return next
+      })
+      return { ...state, tabs, history }
     }
     case 'SLEEP': {
       const ids = new Set(action.ids)
@@ -418,6 +486,7 @@ export interface BrowserApi {
   back: () => void
   forward: () => void
   reload: () => void
+  syncTab: (id: string, patch: Partial<Tab>) => void
   closeTab: (id: string) => void
   activateTab: (id: string) => void
   newTab: (url?: string) => void
@@ -510,6 +579,10 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'NAVIGATE', id: stateRef.current.activeId, url: parsed.url })
   }, [])
 
+  const syncTab = useCallback<BrowserApi['syncTab']>((id, patch) => {
+    dispatch({ type: 'SYNC_TAB', id, patch })
+  }, [])
+
   const newTab = useCallback((url?: string) => {
     dispatch({ type: 'NEW_TAB', url })
   }, [])
@@ -588,9 +661,33 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       activeIndex,
       openUrl,
       navigate,
-      back: () => dispatch({ type: 'BACK', id: state.activeId }),
-      forward: () => dispatch({ type: 'FORWARD', id: state.activeId }),
-      reload: () => dispatch({ type: 'RELOAD', id: state.activeId }),
+      // When a Chromium guest is mounted, its own session history is the
+      // truth; React state is only the fallback for Star's own pages.
+      back: () => {
+        const controller = navController(state.activeId)
+        if (controller) {
+          controller.back()
+          return
+        }
+        dispatch({ type: 'BACK', id: state.activeId })
+      },
+      forward: () => {
+        const controller = navController(state.activeId)
+        if (controller) {
+          controller.forward()
+          return
+        }
+        dispatch({ type: 'FORWARD', id: state.activeId })
+      },
+      reload: () => {
+        const controller = navController(state.activeId)
+        if (controller) {
+          controller.reload()
+          return
+        }
+        dispatch({ type: 'RELOAD', id: state.activeId })
+      },
+      syncTab,
       closeTab: (id) => dispatch({ type: 'CLOSE_TAB', id }),
       activateTab: (id) => dispatch({ type: 'ACTIVATE', id }),
       newTab,
@@ -613,7 +710,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       removeBookmark: (id) => dispatch({ type: 'REMOVE_BOOKMARK', id }),
       toTab: (tab) => dispatch({ type: 'ACTIVATE', id: tab.id }),
     }
-  }, [state, openUrl, navigate, newTab, hibernateWithUndo, toggleBookmark, updateSettings, toast])
+  }, [state, openUrl, navigate, newTab, hibernateWithUndo, toggleBookmark, updateSettings, toast, syncTab])
 
   return <BrowserContext.Provider value={api}>{children}</BrowserContext.Provider>
 }

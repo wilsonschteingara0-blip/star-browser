@@ -8,6 +8,9 @@ export const SHORTCUTS: Shortcut[] = [
   { label: 'Focus the address bar', keys: ['⌘', 'L'] },
   { label: 'Search the constellation', keys: ['/'] },
   { label: 'Command palette', keys: ['⌘', 'K'] },
+  { label: 'Find in page (Chromium)', keys: ['⌘', 'F'] },
+  { label: 'Close tab', keys: ['⌘', 'W'] },
+  { label: 'Reload', keys: ['⌘', 'R'] },
   { label: 'History', keys: ['h'] },
   { label: 'Bookmarks', keys: ['b'] },
   { label: 'Settings', keys: [','] },
@@ -16,7 +19,7 @@ export const SHORTCUTS: Shortcut[] = [
   { label: 'Reopen last closed tab', keys: ['u'] },
   { label: 'Jump to tab 1 – 9', keys: ['1', '…', '9'] },
   { label: 'Keyboard shortcuts', keys: ['?'] },
-  { label: 'Close menus or exit zen', keys: ['Esc'] },
+  { label: 'Close menus, find bar or zen', keys: ['Esc'] },
 ]
 
 export function ShortcutGrid({ compact = false }: { compact?: boolean }) {

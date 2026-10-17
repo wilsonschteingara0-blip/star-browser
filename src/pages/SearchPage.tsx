@@ -5,6 +5,7 @@ import { searchQueryOf } from '../lib/sites'
 import { searchConstellation } from '../lib/search'
 import { ENGINE_URLS } from '../lib/sites'
 import { externalPortalUrl, parseAddress } from '../lib/url'
+import { isDesktop } from '../lib/desktop'
 
 const EXAMPLES = ['notes', 'ambient radio', 'moon', 'comet game', 'shortcuts']
 
@@ -122,18 +123,32 @@ export function SearchPage() {
         <div className="search-web__text">
           <strong style={{ color: 'var(--text-2)' }}>Need the whole internet?</strong>
           <br />
-          Star will open your search in the system browser — no tracking pixels in here.
+          {isDesktop()
+            ? 'Star opens it in a sandboxed Chromium tab — no tracking pixels in the shell.'
+            : 'Star will open your search in the system browser — no tracking pixels in here.'}
         </div>
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           <button
             className="btn btn--sm"
-            onClick={() => navigate(externalPortalUrl(ENGINE_URLS.google(query || 'star browser')))}
+            onClick={() =>
+              navigate(
+                isDesktop()
+                  ? ENGINE_URLS.google(query || 'star browser')
+                  : externalPortalUrl(ENGINE_URLS.google(query || 'star browser')),
+              )
+            }
           >
             <Compass size={12} /> Google it
           </button>
           <button
             className="btn btn--sm"
-            onClick={() => navigate(externalPortalUrl(ENGINE_URLS.duckduckgo(query || 'star browser')))}
+            onClick={() =>
+              navigate(
+                isDesktop()
+                  ? ENGINE_URLS.duckduckgo(query || 'star browser')
+                  : externalPortalUrl(ENGINE_URLS.duckduckgo(query || 'star browser')),
+              )
+            }
           >
             <Compass size={12} /> DuckDuckGo
           </button>
