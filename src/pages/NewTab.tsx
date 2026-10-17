@@ -15,7 +15,7 @@ import { formatClock, formatDateLine, greeting, memoryLabel, timeAgo } from '../
 import { moonInfo } from '../lib/sky'
 import { faviconInfo } from '../lib/sites'
 import { StarMark } from '../components/StarMark'
-import { isDesktop } from '../lib/desktop'
+import { engineLabel, isDesktop } from '../lib/desktop'
 import { useMemoryStats } from '../components/MemoryPanel'
 import type { SearchEngineId } from '../lib/types'
 
@@ -71,7 +71,7 @@ export function NewTab() {
       <div className="newtab__top">
         <span className="newtab__top-left">
           <StarMark size={12} gradient />
-          Star Browser · a calmer constellation
+          Star Browser · {isDesktop() ? engineLabel() : 'a calmer constellation'}
         </span>
         <span className="newtab__clock">
           {formatDateLine(now)}

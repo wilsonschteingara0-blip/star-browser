@@ -84,7 +84,7 @@ export function ExternalPortal({ url }: { url: string }) {
         </div>
 
         {!native && (
-          <button className="portal__engine-link" onClick={() => navigate('star://about#engine')}>
+          <button className="portal__engine-link" onClick={() => navigate('star://chromium')}>
             How Star runs Chromium on the desktop <ArrowUpRight size={11} />
           </button>
         )}

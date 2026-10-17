@@ -6,6 +6,9 @@ and what to expect when running it.
 
 ## Run
 
+`star://chromium` in either edition is the engine's home page: versions, the tab
+lifecycle, the GitHub sources and the launch command.
+
 ```bash
 npm install       # once; downloads the Chromium runtime
 npm run desktop   # build the renderer, then open the window

@@ -102,6 +102,9 @@ export function AboutPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            <button className="btn btn--sm" onClick={() => navigate('star://chromium')}>
+              Open the engine page <ArrowUpRight size={12} />
+            </button>
             <button className="btn btn--sm" onClick={() => openExternalUrl(CHROMIUM_GITHUB)}>
               Chromium on GitHub <ArrowUpRight size={12} />
             </button>

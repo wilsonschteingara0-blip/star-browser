@@ -17,6 +17,9 @@ const INTERNAL_ALIASES: Record<string, string> = {
   preferences: 'star://settings',
   about: 'star://about',
   help: 'star://about',
+  chromium: 'star://chromium',
+  engine: 'star://chromium',
+  chromium_engine: 'star://chromium',
 }
 
 export function parseAddress(raw: string): ParsedAddress {
@@ -28,6 +31,11 @@ export function parseAddress(raw: string): ParsedAddress {
     const key = input.slice('star://'.length).replace(/\/$/, '').toLowerCase()
     return { url: INTERNAL_ALIASES[key] ?? 'star://newtab', mode: 'internal' }
   }
+
+  // A bare word like "chromium" or "history" is a Star page, like a real
+  // browser's internal URLs.
+  const alias = INTERNAL_ALIASES[input.toLowerCase()]
+  if (alias) return { url: alias, mode: 'internal' }
 
   const site = siteByUrl(input) ?? SITES.find((s) => s.id === input.toLowerCase())
   if (site) return { url: site.url, mode: 'site' }

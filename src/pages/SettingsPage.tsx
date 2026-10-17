@@ -522,7 +522,7 @@ export function SettingsPage({ url }: { url: string }) {
               <button className="btn btn--sm" onClick={() => openExternalUrl(ELECTRON_GITHUB)}>
                 electron/electron <ArrowUpRight size={12} />
               </button>
-              <button className="btn btn--sm" onClick={() => navigate('star://about#engine')}>
+              <button className="btn btn--sm" onClick={() => navigate('star://chromium')}>
                 About the engine
               </button>
             </div>

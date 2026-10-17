@@ -34,7 +34,7 @@ export function StatusBar() {
               ? engineDetail()
               : 'The desktop app renders pages with Chromium — click to see the engine'
           }
-          onClick={() => navigate('star://about#engine')}
+          onClick={() => navigate('star://chromium')}
         >
           {isDesktop() ? <Cpu size={10} /> : <Globe size={10} />}
           {engineLabel()}

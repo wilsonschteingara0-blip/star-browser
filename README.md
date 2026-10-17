@@ -117,6 +117,13 @@ stack and background updaters. The engine tab tells you the exact versions at
 Guest permissions are deny-by-default; only fullscreen and clipboard writes are
 granted. Camera, microphone, location, MIDI and notifications are refused.
 
+**Why doesn't this repo contain Chromium's C++ source?** Chromium is a
+multi-gigabyte C++ project built with GN and Ninja; vendoring the tree would
+dwarf Star and take hours to compile. The official Chromium build is delivered by
+Electron, and the source is one click away at
+[chromium/chromium](https://github.com/chromium/chromium). The in-app engine page
+at `star://chromium` shows exactly which build is running.
+
 ## The memory story, honestly
 
 **Desktop edition:** web-tab memory is read from Chromium's process counters, so
@@ -151,8 +158,9 @@ instead of a star for those pages.
 
 Star's own pages live under `star://`:
 
-`star://newtab` · `star://search?q=…` · `star://history` · `star://bookmarks` ·
-`star://settings` · `star://about` · `star://external?url=…` (the web-preview portal)
+`star://newtab` · `star://search?q=…` · `star://chromium` · `star://history` ·
+`star://bookmarks` · `star://settings` · `star://about` ·
+`star://external?url=…` (the web-preview portal)
 
 ## Keyboard
 

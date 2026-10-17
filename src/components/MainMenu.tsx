@@ -135,7 +135,7 @@ export function MainMenu({ onOpenPalette }: { onOpenPalette: () => void }) {
             {state.settings.memorySaver ? <Leaf size={14} /> : <Laptop size={14} />}
             Memory saver: {state.settings.memorySaver ? 'on' : 'off'}
           </button>
-          <button className="menu-item" onClick={() => go('star://about#engine')}>
+          <button className="menu-item" onClick={() => go('star://chromium')}>
             <Cpu size={14} /> Engine
             <span className="menu-item__kbd">{engineLabel()}</span>
           </button>

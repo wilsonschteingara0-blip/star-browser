@@ -250,7 +250,11 @@ export function DocsPage() {
               <strong>Run it.</strong> Install once with <code>npm install</code>, then{' '}
               <code>npm run desktop</code> to build and open the Chromium window. While developing,{' '}
               <code>npm run desktop:dev</code> starts Vite and the shell together. The web preview
-              keeps working with no Electron at all.
+              keeps working with no Electron at all. There is a full overview at{' '}
+              <button className="inline-link" onClick={() => navigate('star://chromium')}>
+                star://chromium
+              </button>
+              .
             </span>
           </div>
         </section>

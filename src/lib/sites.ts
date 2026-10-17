@@ -12,6 +12,7 @@ import {
   History,
   Bookmark,
   Sparkles,
+  Cpu,
   type LucideIcon,
 } from 'lucide-react'
 import type { PageKind } from './types'
@@ -141,6 +142,14 @@ export const INTERNAL_PAGES: InternalPageDef[] = [
     tags: ['settings', 'preferences', 'appearance', 'memory', 'privacy'],
   },
   {
+    url: 'star://chromium',
+    title: 'Chromium Engine',
+    description:
+      'How Star uses Chromium: sandboxed tab guests, real session history, hibernation and the official GitHub source.',
+    icon: Cpu,
+    tags: ['chromium', 'engine', 'blink', 'v8', 'electron', 'github', 'source', 'browser'],
+  },
+  {
     url: 'star://about',
     title: 'About Star Browser',
     description: 'Version, philosophy, shortcuts and the very short list of things we collect.',
@@ -259,6 +268,7 @@ export function memoryBaseline(url: string): number {
   if (url.startsWith('star://history')) return 17
   if (url.startsWith('star://bookmarks')) return 16
   if (url.startsWith('star://about')) return 14
+  if (url.startsWith('star://chromium')) return 22
   if (url.startsWith('star://newtab')) return 26
   return 90
 }

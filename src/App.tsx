@@ -18,6 +18,7 @@ import { HistoryPage } from './pages/HistoryPage'
 import { BookmarksPage } from './pages/BookmarksPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DocsPage } from './pages/DocsPage'
+import { ChromiumPage } from './pages/ChromiumPage'
 import { AboutPage } from './pages/AboutPage'
 import { ExternalPortal } from './pages/ExternalPortal'
 import { StarMark } from './components/StarMark'
@@ -52,6 +53,7 @@ function PageRouter() {
 
   if (url.startsWith('star://search')) return <SearchPage />
   if (url.startsWith('star://external')) return <ExternalPortal url={url} />
+  if (url.startsWith('star://chromium')) return <ChromiumPage />
   if (url.startsWith('star://settings')) return <SettingsPage url={url} />
   if (url.startsWith('star://history')) return <HistoryPage />
   if (url.startsWith('star://bookmarks')) return <BookmarksPage />
