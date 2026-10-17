@@ -28,8 +28,12 @@ export function parseAddress(raw: string): ParsedAddress {
 
   if (input.startsWith('star://')) {
     if (input.startsWith('star://search')) return { url: input, mode: 'search' }
-    const key = input.slice('star://'.length).replace(/\/$/, '').toLowerCase()
-    return { url: INTERNAL_ALIASES[key] ?? 'star://newtab', mode: 'internal' }
+    // Keep the hash: star://settings#engine is a real address, not a typo.
+    const hashIndex = input.indexOf('#')
+    const beforeHash = hashIndex >= 0 ? input.slice(0, hashIndex) : input
+    const hash = hashIndex >= 0 ? input.slice(hashIndex) : ''
+    const key = beforeHash.slice('star://'.length).replace(/\/$/, '').toLowerCase()
+    return { url: `${INTERNAL_ALIASES[key] ?? 'star://newtab'}${hash}`, mode: 'internal' }
   }
 
   // A bare word like "chromium" or "history" is a Star page, like a real

@@ -922,4 +922,15 @@ button.inline-link {
   .chromium-hero {
     padding: 24px 20px;
   }
+  /* Let the status text own the full width and drop the action below it. */
+  .chromium-status {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .chromium-status > .btn {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 4px;
+  }
 }

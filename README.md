@@ -101,6 +101,8 @@ local. **What Star removes:** Google's services, sync, accounts, the extension
 stack and background updaters. The engine tab tells you the exact versions at
 `star://about#engine` and `star://settings#engine`.
 
+![The star://chromium engine page](docs/chromium.png)
+
 ### How an external tab works
 
 1. The active tab's page is a `<webview>` guest in the renderer, pointed at a
