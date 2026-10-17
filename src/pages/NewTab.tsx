@@ -268,7 +268,9 @@ export function NewTab() {
           <div className="mem-mini">
             <div className="mem-mini__total">
               <strong>{Math.round(mem.total)}</strong>
-              <span>MB across {state.tabs.length} tabs</span>
+              <span>
+                MB across {state.tabs.length} {state.tabs.length === 1 ? 'tab' : 'tabs'}
+              </span>
             </div>
             <div className="mem-mini__bar">
               <span
